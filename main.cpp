@@ -99,6 +99,10 @@ public:
         return false;
     }
 
+     vector<vector<int>> showGraph (){
+        return matrix;
+    }
+
     void NewEdge (int k, int m) {
         matrix [k][m] = matrix [m][k] = 1;
     }
@@ -190,16 +194,17 @@ public:
         return segments;
     }
     // Поиск цепи
-    void dfsChain(vector<int>* used, vector<bool>* laidVertexes, vector<int>* chain, int v) {
-        (*used)[v] = 1;
+    void dfsChain(vector<bool>* used, vector<bool>* laidVertexes, vector<int>* chain, int v) {
+        (*used)[v] = true;
         chain->push_back(v);
         for (int i = 0; i < n; i++) {
-            if (matrix[v][i] == 1 && (*used)[i] == 0) {
+            if (matrix[v][i] == 1 && (*used)[i] == false) {
                 if (!(*laidVertexes)[i]) {
                     dfsChain(used, laidVertexes, chain, i);
                 } else {
                     chain->push_back(i);
                 }
+                
                 return;
             }
         }
@@ -211,11 +216,13 @@ public:
             if ((*laidVertexes)[i]) {
                 bool inGraph = false;
                 for (int j = 0; j < n; j++) {
-                    if (ContEdge(i, j))
+                    if (ContEdge(i, j)) {
                         inGraph = true;
+                        break;
+                    }
                 }
                 if (inGraph) {
-                    dfsChain(new vector<int>(n), laidVertexes, result, i);
+                    dfsChain(new vector<bool>(n), laidVertexes, result, i);
                     break;
                 }
             }
@@ -266,8 +273,56 @@ public:
         return *count;
     }
 
+    int mostConnectedVertex(vector< vector<int>> segment){
+        int edgeNum = 0, maxEdgeNum = 0;
+        int maxVertex = 0;
+        for(int i = 0; i < n; i++){
+            for(int j = 0; j < n; j++){
+                if(segment[i][j] == 1){
+                    edgeNum++;
+                }
+            }
+            if(edgeNum > maxEdgeNum){
+                maxEdgeNum = edgeNum;
+                maxVertex = i;
+            }
+            edgeNum = 0;
+        }
+        return maxVertex;
+    }
+
+    void deleteEdge(int &deletedEdgesAmount, vector< vector<int>> segment) {
+        int maxVertex = mostConnectedVertex(segment);
+        for(int i = 0; i < n; i++){
+            if(segment[maxVertex][i] == 1){
+                matrix[maxVertex][i] = 0;
+                matrix[i][maxVertex] = 0;
+                deletedEdgesAmount++;
+                break;
+            }
+        }
+    }
+
+    void deleteVertex(int &deletedVerticesAmount, vector< vector<int>> segment) {
+        int maxVertex = mostConnectedVertex(segment);
+        matrix.erase(matrix.begin() + maxVertex);
+        n--;
+        for(int i = 0; i < n; i++){
+            matrix[i].erase(matrix[i].begin() + maxVertex);
+        }
+        deletedVerticesAmount++;
+        cout << maxVertex;
+        for(auto i : matrix){
+            for(auto j : i){
+                cout << j << " ";
+            }
+            cout << endl;
+        }
+        cout << endl;
+    }
+
     Faces* getPlanarLaying() {
-        if (n == 1) {
+        /*if (n == 1) {
             auto faces = new vector<vector<int>>();
             auto outerFace = new vector<int>();
             (*outerFace).push_back(0);
@@ -279,7 +334,7 @@ public:
                 faces->push_back(outerFace[i]);
             }
             return new Faces(faces, outerFace);
-        }
+        }*/
         vector<int>* c = GetCycle();
         if(c->empty()) {
             return nullptr;
@@ -297,9 +352,26 @@ public:
         }
         layChain(laidEdges, *c, true);
 
+        /*for(auto i : *c){
+            cout << i + 1 << " ";
+        }
+        cout << endl;*/
+
+        int deletedEdges = 0;
+        int deletedVertices = 0;
+        bool needChanges = false;
+        int f = 0;
         while (true) {
+            f++;
+            if(f > 10){
+                return 0;
+            }
             vector<Graph>* segments = getSegments(laidVertexes, laidEdges);
             if (segments->empty()) {
+                if(needChanges){
+                    cout << "Deleted edges: " << deletedEdges << endl;
+                    cout << "Deleted vertices: " << deletedVertices << endl;
+                }
                 break;
             }
             auto destFaces = new vector<vector<int>>(segments->size());
@@ -310,12 +382,33 @@ public:
                     mi = i;
             }
             if (count[mi] == 0) {
-                return nullptr;
+                deleteVertex(deletedVertices, ((*segments)[mi]).showGraph());
+                //deleteEdge(deletedEdges, ((*segments)[mi]).showGraph());
+                needChanges = true;
+                /*for(auto it : ((*segments)[mi]).showGraph()){
+                    for(auto itt : it){
+                        cout << itt << " ";
+                    }
+                    cout <<endl;
+                }*/
+                cout << endl << endl;
+                
             } else { //++++++
                 //Укладка выбранного сегмента
                 //Выделяем цепь между двумя контактными вершинами
-
+                /*for(auto it : ((*segments)[mi]).showGraph()){
+                    for(auto itt : it){
+                        cout << itt;
+                    }
+                    cout <<endl;
+                }*/
+                
                 auto chain = ((*segments)[mi]).getChain(laidVertexes);
+                /*for(auto b : *chain){
+                    cout << b  + 1<< " ";
+                    cout << endl;
+                }*/
+                
                 for (int i : *chain) {
                     (*laidVertexes)[i] = true;
                 }
@@ -422,13 +515,16 @@ int main() {
 
     fout << gr->toString();
     fout << "}";
+    /*if(n < 5){
+        cout << "Graph is planar";
+    }*/
     Faces* planar = (*gr).getPlanarLaying();
     if(planar != nullptr) {
-        cout << "Graph is planarity. Edges:" << endl;
+        cout << "Graph is planar" << endl;
         cout << planar->toString();
     }
     else {
-        cout << "Graph is not planarity";
+        cout << "Graph is not planar";
     }
     unsigned int end_time = clock();
     cout << endl << (end_time - start_time)/1000.0 << " sec." << endl;
