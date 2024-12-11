@@ -8,39 +8,6 @@
 
 using namespace std;
 
-class Faces {
-public:
-    vector<vector<int>> interior;
-    vector <int> external;
-    int n = 0;
-    // Проверка полученных граней
-    Faces(vector<vector<int>>* interior, vector <int>* external) {
-        if(interior != nullptr && external != nullptr) {
-            this->interior = *interior;
-            this->external = *external;
-            n = (*interior).size() + (*external).size();
-        } else {
-            n = 0;
-        }
-    }
-    // Преобразование данных для вывода
-    string toString() {
-        string result = "Faces size = " + to_string(n) + "\nExternal face:\n";
-        for (int i : external) {
-            result += to_string(i) + " ";
-        }
-        result += "\nInterior faces:\n";
-        for (auto & i : interior) {
-            for (int j : i) {
-                result += to_string(j) + " ";
-            }
-            result += "\n";
-        }
-
-        return result;
-    }
-};
-
 class Graph
 {
 public:
@@ -303,7 +270,7 @@ public:
         }
     }
 
-    void deleteVertex(int &deletedVerticesAmount, vector< vector<int>> segment) {
+    int deleteVertex(int &deletedVerticesAmount, vector< vector<int>> segment) {
         int maxVertex = mostConnectedVertex(segment);
         matrix.erase(matrix.begin() + maxVertex);
         n--;
@@ -311,35 +278,12 @@ public:
             matrix[i].erase(matrix[i].begin() + maxVertex);
         }
         deletedVerticesAmount++;
-        cout << maxVertex;
-        for(auto i : matrix){
-            for(auto j : i){
-                cout << j << " ";
-            }
-            cout << endl;
-        }
-        cout << endl;
+        return maxVertex;
     }
 
-    Faces* getPlanarLaying() {
-        /*if (n == 1) {
-            auto faces = new vector<vector<int>>();
-            auto outerFace = new vector<int>();
-            (*outerFace).push_back(0);
+    vector<int> getPlanarLaying() {
 
-            for (int i = 0; i < outerFace->size(); i++) {
-                faces->push_back(outerFace[i]);
-            }
-            for (int i = 0; i < outerFace->size(); i++) {
-                faces->push_back(outerFace[i]);
-            }
-            return new Faces(faces, outerFace);
-        }*/
         vector<int>* c = GetCycle();
-        if(c->empty()) {
-            return nullptr;
-        }
-
         auto intFaces = new vector<vector<int>>;
         vector<int>* extFace = c;
         intFaces->push_back(*c);
@@ -352,25 +296,17 @@ public:
         }
         layChain(laidEdges, *c, true);
 
-        /*for(auto i : *c){
-            cout << i + 1 << " ";
-        }
-        cout << endl;*/
-
-        int deletedEdges = 0;
-        int deletedVertices = 0;
+        int deletedEdgesAmount = 0;
+        int deletedVerticesAmount = 0;
         bool needChanges = false;
-        int f = 0;
+        int deletedVertex;
+        vector<int> result;
         while (true) {
-            f++;
-            if(f > 10){
-                return 0;
-            }
             vector<Graph>* segments = getSegments(laidVertexes, laidEdges);
             if (segments->empty()) {
                 if(needChanges){
-                    cout << "Deleted edges: " << deletedEdges << endl;
-                    cout << "Deleted vertices: " << deletedVertices << endl;
+                    result.push_back(deletedEdgesAmount);
+                    result.push_back(deletedVerticesAmount);
                 }
                 break;
             }
@@ -381,8 +317,43 @@ public:
                 if (count[i] < count[mi])
                     mi = i;
             }
+            for(auto i : count){
+                cout << i <<" ";
+            }
+            cout << endl;
             if (count[mi] == 0) {
-                deleteVertex(deletedVertices, ((*segments)[mi]).showGraph());
+                deletedVertex = deleteVertex(deletedVerticesAmount, ((*segments)[mi]).showGraph());
+                for(int i = 0; i < c->size(); i++){
+                    if((*c)[i] > deletedVertex){
+                        (*c)[i]--;
+                    }
+                }
+                laidVertexes->erase(laidVertexes->begin() + deletedVertex);
+
+                laidEdges->erase(laidEdges->begin() + deletedVertex);
+                for(int i = 0; i < n; i++){
+                    (*laidEdges)[i].erase((*laidEdges)[i].begin() + deletedVertex);
+                }
+
+                for(int i = 0; i < intFaces->size(); i++){
+                    for(int j = 0; j < (*intFaces)[i].size(); i++){
+                        if((*intFaces)[i][j] > deletedVertex){
+                            (*intFaces)[i][j]--;
+                        }
+                    }
+                }
+                for(int i = 0; i < extFace->size(); i++){
+                    if((*extFace)[i] > deletedVertex){
+                        (*extFace)[i]--;
+                    }
+                }
+                for(int i = 0; i < destFaces->size(); i++){
+                    for(int j = 0; j < (*destFaces)[i].size(); i++){
+                        if((*destFaces)[i][j] > deletedVertex){
+                            (*destFaces)[i][j]--;
+                        }
+                    }
+                }
                 //deleteEdge(deletedEdges, ((*segments)[mi]).showGraph());
                 needChanges = true;
                 /*for(auto it : ((*segments)[mi]).showGraph()){
@@ -487,7 +458,7 @@ public:
             }
 
         }
-        return new Faces(intFaces, extFace);
+        return result;
     }
 };
 
@@ -515,16 +486,19 @@ int main() {
 
     fout << gr->toString();
     fout << "}";
-    /*if(n < 5){
-        cout << "Graph is planar";
-    }*/
-    Faces* planar = (*gr).getPlanarLaying();
-    if(planar != nullptr) {
+
+    if(n < 5){
         cout << "Graph is planar" << endl;
-        cout << planar->toString();
+        return 0;
+    }
+    vector<int> result = (*gr).getPlanarLaying();
+    if(result.empty()) {
+        cout << "Graph is planar" << endl;
     }
     else {
-        cout << "Graph is not planar";
+        cout << "Graph is not planar. To make this graph planar we should delete edges or vertices" << endl;
+        cout << "Amount of deleted edges: " << result[0] << endl;
+        cout << "Amount of deleted verticies: " << result[1] << endl;
     }
     unsigned int end_time = clock();
     cout << endl << (end_time - start_time)/1000.0 << " sec." << endl;
