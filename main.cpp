@@ -36,7 +36,7 @@ public:
         return res;
     }
 
-    static vector<vector <int>> RemoveAll(vector<vector<int>> *a, const vector<int>& b) { //+
+    static vector<vector <int>> removeAll(vector<vector<int>> *a, const vector<int>& b) { //+
         for (int i = 0; i < a->size(); i++) {
             if ((*a)[i] == b) {
                 a->erase(a->begin() + i);
@@ -45,7 +45,7 @@ public:
         return *a;
     }
 
-    bool CheckGraphForm() {
+    bool checkGraphForm() {
         if (matrix.size() > n) {
             return true;
         }
@@ -59,10 +59,6 @@ public:
                 }
             }
         }
-        vector<int>* c = GetCycle();
-        if (c== nullptr) {
-            return true;
-        }
         return false;
     }
 
@@ -70,15 +66,15 @@ public:
         return matrix;
     }
 
-    void NewEdge (int k, int m) {
+    void newEdge (int k, int m) {
         matrix [k][m] = matrix [m][k] = 1;
     }
 
-    bool ContEdge (int k, int m) {
+    bool contEdge (int k, int m) {
         return (matrix[k][m] == 1);
     }
 
-    bool FindCycle (vector <int>* result, vector<int> used, int parent, int v) {
+    bool findCycle (vector <int>* result, vector<int> used, int parent, int v) {
         used.resize(n, 0);
         used[v] = 1;
         for (int i = 0; i < n; i++) {
@@ -86,7 +82,7 @@ public:
             if (matrix[v][i] == 0) continue;
             if (used[i] == 0) {
                 result->push_back(v);
-                if (FindCycle(result, used, v, i)) {
+                if (findCycle(result, used, v, i)) {
                     // Цикл найден
                     return true;
                 }
@@ -116,9 +112,9 @@ public:
         return false;
     }
     // Возврат найденного цикла
-    vector <int>* GetCycle() {
+    vector <int>* getCycle() {
         auto cycle = new vector<int>();
-        bool isCycle = FindCycle(cycle, *new vector<int>, -1, 0);
+        bool isCycle = findCycle(cycle, *new vector<int>, -1, 0);
         if(!isCycle) {
             return nullptr;
         }
@@ -133,7 +129,7 @@ public:
         used[v] = 1;
         for (int i = 0; i < n; i++) {
             if (matrix[v][i]==1){
-                result->NewEdge(v,i);
+                result->newEdge(v,i);
                 if (used[i] == 0 && !(*laidVertexes)[i]) dfsSegments(used, laidVertexes, result, i);
             }
         }
@@ -145,7 +141,7 @@ public:
             for (int j = i + 1; j < n; j++) {
                 if (matrix[i][j] == 1 && !(*edges)[i][j] && (*laidVertexes)[i] && (*laidVertexes)[j]) {
                     auto *t = new Graph(n);
-                    t->NewEdge(i, j);
+                    t->newEdge(i, j);
                     (*segments).push_back(*t);
                 }
             }
@@ -183,7 +179,7 @@ public:
             if ((*laidVertexes)[i]) {
                 bool inGraph = false;
                 for (int j = 0; j < n; j++) {
-                    if (ContEdge(i, j)) {
+                    if (contEdge(i, j)) {
                         inGraph = true;
                         break;
                     }
@@ -211,7 +207,7 @@ public:
     bool isFaceContainsSegment(vector <int> face, Graph segment, vector<bool>* laidVertexes) const {
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
-                if (segment.ContEdge(i, j)) {
+                if (segment.contEdge(i, j)) {
                     if (((*laidVertexes)[i] && (find(face.begin(), face.end(), i) == face.end()))
                         || ((*laidVertexes)[j] && (find(face.begin(), face.end(), j) == face.end()))) {
                         return false;
@@ -283,7 +279,7 @@ public:
 
     vector<int> getPlanarLaying() {
 
-        vector<int>* c = GetCycle();
+        vector<int>* c = getCycle();
         auto intFaces = new vector<vector<int>>;
         vector<int>* extFace = c;
         intFaces->push_back(*c);
@@ -317,12 +313,8 @@ public:
                 if (count[i] < count[mi])
                     mi = i;
             }
-            for(auto i : count){
-                cout << i <<" ";
-            }
-            cout << endl;
             if (count[mi] == 0) {
-                deletedVertex = deleteVertex(deletedVerticesAmount, ((*segments)[mi]).showGraph());
+                /*deletedVertex = deleteVertex(deletedVerticesAmount, ((*segments)[mi]).ShowGraph());
                 for(int i = 0; i < c->size(); i++){
                     if((*c)[i] > deletedVertex){
                         (*c)[i]--;
@@ -336,7 +328,7 @@ public:
                 }
 
                 for(int i = 0; i < intFaces->size(); i++){
-                    for(int j = 0; j < (*intFaces)[i].size(); i++){
+                    for(int j = 0; j < (*intFaces)[i].size(); j++){
                         if((*intFaces)[i][j] > deletedVertex){
                             (*intFaces)[i][j]--;
                         }
@@ -348,37 +340,20 @@ public:
                     }
                 }
                 for(int i = 0; i < destFaces->size(); i++){
-                    for(int j = 0; j < (*destFaces)[i].size(); i++){
+                    for(int j = 0; j < (*destFaces)[i].size(); j++){
                         if((*destFaces)[i][j] > deletedVertex){
                             (*destFaces)[i][j]--;
                         }
                     }
-                }
-                //deleteEdge(deletedEdges, ((*segments)[mi]).showGraph());
-                needChanges = true;
-                /*for(auto it : ((*segments)[mi]).showGraph()){
-                    for(auto itt : it){
-                        cout << itt << " ";
-                    }
-                    cout <<endl;
                 }*/
-                cout << endl << endl;
+                deleteEdge(deletedEdgesAmount, ((*segments)[mi]).showGraph());
+                needChanges = true;
                 
             } else { //++++++
                 //Укладка выбранного сегмента
                 //Выделяем цепь между двумя контактными вершинами
-                /*for(auto it : ((*segments)[mi]).showGraph()){
-                    for(auto itt : it){
-                        cout << itt;
-                    }
-                    cout <<endl;
-                }*/
                 
                 auto chain = ((*segments)[mi]).getChain(laidVertexes);
-                /*for(auto b : *chain){
-                    cout << b  + 1<< " ";
-                    cout << endl;
-                }*/
                 
                 for (int i : *chain) {
                     (*laidVertexes)[i] = true;
@@ -422,7 +397,7 @@ public:
                         }
                     }
 
-                    RemoveAll(intFaces,face);
+                    removeAll(intFaces,face);
                     intFaces->push_back(*face1);
                     intFaces->push_back(*face2);
 
@@ -448,7 +423,7 @@ public:
                             face2->push_back(face[i]);
                         }
                     }
-                    RemoveAll(intFaces, *extFace);
+                    removeAll(intFaces, *extFace);
                     intFaces->push_back(*newOuterFace);
                     intFaces->push_back(*face2);
                     extFace = newOuterFace;
@@ -475,7 +450,7 @@ int main() {
         }
     }
     auto* gr = new Graph(m);
-    if (gr->CheckGraphForm()) {
+    if (gr->checkGraphForm()) {
         cout << "Incorrect graph format" << endl;
         return 0;
     }
@@ -491,6 +466,12 @@ int main() {
         cout << "Graph is planar" << endl;
         return 0;
     }
+
+    if(gr->getCycle() == nullptr){
+        cout << "Graf is disconnected";
+        return 0;
+    }
+
     vector<int> result = (*gr).getPlanarLaying();
     if(result.empty()) {
         cout << "Graph is planar" << endl;
